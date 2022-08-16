@@ -1,0 +1,96 @@
+---
+title: "Weekly_Stock_Data"
+author: "Edwin De Los Santos"
+date: "2022-08-16"
+output: html_document
+---
+```{r include=FALSE}
+library(data.table)
+library(fixest)
+library(BatchGetSymbols)
+library(finreportr)
+library(ggplot2)
+library(lubridate)
+```
+
+# Download stock price data.
+When creating this data set, including a verity of sectors to compare against allowed to view for any sympathy price action amongst companies that trade in the same sectors such as FAANG, Tech, Banking, Bonds (TLT), Business Services, Entertainment, and Auto Manufacturing. This will be a first draft of this kind of analysis. In the future these sectors will be compared more in depth with more companies per sector, and to compare these sectors against each other for more analysis. 
+
+$F, $AAPL, $MSFT, $META, $NVDA, $GOOGL, $AMZN, $TWTR, $DIS, $SQ, $JPM, $TLT, $TSLA
+```{r warning=FALSE, include=FALSE}
+
+##set perimeters
+first.date <- Sys.Date() - 30
+last.date <- Sys.Date()
+freq.data <- "daily"
+tickers <- c("F", "AAPL", "MSFT", "META", "NVDA", "GOOGL", "AMZN", "TWTR", "TLT", "DIS", "SQ", "JPM", "TSLA")
+
+## Get Stock Prices
+
+stocks <- BatchGetSymbols(tickers=tickers,
+                          first.date = first.date,
+                          last.date = last.date,
+                          freq.data = freq.data,
+                          do.cache = FALSE,
+                          thresh.bad.data = 0)
+
+##Verify Returns
+stock_DT <- stocks$df.tickers %>% setDT() %>%       ## Convert to data.table
+  .[order(ticker,ref.date)]                       ##Order by ticker and date
+```
+
+## Percent Return over Date
+Bellow is a line graph depicting the stocks returned percentage overtime for all tickers included in the data set. 
+
+Analysis: We can tell the volatility of stocks price actions from one time to another. for example, we can look at SQ from August 2nd and see it had the largest daily percent hike than any other stock, but shortly after on the 9th it had a large loss from the top on August 4th. We see SQ go from from a gain of about 17% from August 2nd to the 4th, and give up those returns by August 9th before continuing to raise from there. 
+
+
+```{r echo=TRUE, warning=FALSE}
+##Graph Returns and Prices
+return_plot_all <- ggplot(stock_DT, aes(x= ref.date, y= ret.adjusted.prices, colour = ticker)) + geom_line() + theme_bw() + labs(title = "", x = "Date", y= "Daily Returns",subtitle = "")
+
+print(return_plot_all)  ## All tickers monthly returns
+```
+
+## Closing Price over Date
+Here we see a line graph showing the closing price of the stocks over the date.
+
+Analysis: We can now visually see which stocks had the largest return gained over our time set. For example, we can see TSLA, and DIS over the dates presented had the largest incline in the graph meaning they were some of the largest gainer in our set.
+
+```{r echo=TRUE, warning=FALSE}
+price_plot_all <- ggplot(stock_DT, aes(x= ref.date, y= price.close, colour = ticker))+geom_line() + theme_bw() + labs(title = "", x= "Date", y= "Closing Price", subtitle = "")
+
+print(price_plot_all)  ## All tickers closing prices year over year
+```
+
+## View Stocks Individualy
+Now that we've compared them side by side we can begin looking at them more individually and see their respective daily returns, and closing prices over time. 
+Analysis: Here it's more noticeable the individual returns over time per stock and which ones had the largest returns and losses. for example we can see TSLA and DIS had the larges percent returns. While TLT had the lowest returns.
+
+TLT- As interest rates go down, TLT will go up in price, and vice versa
+
+```{r echo=TRUE, warning=FALSE}
+## Day to day returns
+
+returns_sep <- ggplot(stock_DT, aes(x = ref.date, y = ret.adjusted.prices)) + geom_line() + facet_wrap(~ticker,scales = "free_y") +
+  geom_jitter(width=0.15)+
+  theme(axis.text.x = element_text(angle = 45)) + labs(title = "", x = "Date", y= "Daily Returns",subtitle = "")
+
+print(returns_sep)
+```
+
+Now to view the closing prices individually.
+
+Analysis: Here we can confirm our top analysis that TSLA and DIS were the largest gainers in our data set while TLT was our biggest loss of return for good reason, as interest rates are being increased from the FED as it is happening now, TLT will continue its down turn since it acts as an actual bond in term of price and yield. 
+
+```{r echo=TRUE, warning=FALSE}
+prices_sep <- ggplot(stock_DT, aes(x = ref.date, y= price.close)) + geom_line()+facet_wrap(~ticker, scales = "free_y") +
+  geom_jitter(width=0.15)+
+  theme(axis.text.x = element_text(angle = 45)) + labs(title = "", x= "Date", y= "Closing Price", subtitle = "")
+
+print(prices_sep)
+
+## All stock tickers in SP 500
+df.SP500 <- GetSP500Stocks()
+tickers <- df.SP500$Tickers
+```
